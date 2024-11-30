@@ -63,32 +63,10 @@
         </div><!--/pie-chart-card-->
 
         <!-- Target Grade Change History Card -->
-        <div class="card card-default card-sm card-target-grade-history">
-          <div class="card-heading">
-            <h4>Target Grade Change History</h4>
-          </div>
-          <div class="card-body">
-            <table class="table table-striped">
-              <thead>
-                <tr>
-                  <th>Changed At</th>
-                  <th>Previous Grade</th>
-                  <th>New Grade</th>
-                  <th>Changed By</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr ng-repeat="history in targetGradeHistory">
-                  <td>{{ history.changed_at | date:'medium' }}</td>
-                  <td>{{ grades.names[history.previous_grade.toString()] }}</td>
-                  <td>{{ grades.names[history.new_grade.toString()] }}</td>
-                  <td>{{ history.changed_by.first_name }} {{ history.changed_by.last_name }}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div><!--/target-grade-history-card-->
-      </div><!--/right-column-->
+        <target-grade-history [project-id]="project.id">
+          
+        </target-grade-history>
+    </div><!--/right-column-->
     </div><!--/row-->
   </div><!--/panel-body-->
 </div>
