@@ -57,16 +57,21 @@
           <div class="card-body">
             <student-task-status-pie-chart
               project="project"
-              update-data="renderTaskStatusPieChart">
+              update-data="renderTaskStatusPieChart"
+            >
             </student-task-status-pie-chart>
           </div><!--/pie-chart-body-->
         </div><!--/pie-chart-card-->
 
         <!-- Target Grade Change History Card -->
-        <target-grade-history [project-id]="project.id">
-          
+        <!-- We now pass project.id and project.targetGrade again -->
+        <target-grade-history
+          [project-id]="project.id"
+          [target-grade]="project.targetGrade"
+        >
         </target-grade-history>
-    </div><!--/right-column-->
+
+      </div><!--/right-column-->
     </div><!--/row-->
   </div><!--/panel-body-->
 </div>
