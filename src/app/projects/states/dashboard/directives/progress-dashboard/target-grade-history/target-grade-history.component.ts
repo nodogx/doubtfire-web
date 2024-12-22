@@ -15,6 +15,7 @@ interface User {
 }
 
 interface TargetGradeHistory {
+  id: number;
   previous_grade: string | number;
   new_grade: string | number;
   changed_at: string;
@@ -24,14 +25,17 @@ interface TargetGradeHistory {
 @Component({
   selector: 'f-target-grade-history',
   templateUrl: './target-grade-history.component.html',
-  styleUrls: ['./target-grade-history.component.scss'],
+  styleUrls: ['./target-grade-history.component.scss']
 })
 export class TargetGradeHistoryComponent implements OnInit, OnChanges {
-  @Input() projectId!: number;
-  @Input() targetGrade!: string; // <-- so we can detect changes in targetGrade
+  @Input() projectId!: number;       
+  @Input() targetGrade?: string;     
 
+  // Data
   targetGradeHistory: TargetGradeHistory[] = [];
   paginatedGradeHistory: TargetGradeHistory[] = [];
+
+  // UI State
   loading = false;
   error: string | null = null;
 
@@ -51,25 +55,22 @@ export class TargetGradeHistoryComponent implements OnInit, OnChanges {
     }
   }
 
-  /**
-   * Detect input changes (projectId or targetGrade). 
-   * If 'targetGrade' changes, we may re-fetch the data.
-   */
+  
   ngOnChanges(changes: SimpleChanges): void {
-    // If projectId changes (and not the first time), reload.
     if (changes.projectId && !changes.projectId.firstChange) {
+      this.currentPage = 1; 
       this.loadTargetGradeHistory();
     }
 
-    // If targetGrade changes (and not the first time), reload TGH
     if (changes.targetGrade && !changes.targetGrade.firstChange) {
       this.loadTargetGradeHistory();
     }
   }
 
+  
   private loadTargetGradeHistory(): void {
     if (!this.projectId) {
-      console.error('No projectId provided');
+      console.error('No projectId provided to TargetGradeHistoryComponent');
       this.error = 'Project ID is required';
       return;
     }
@@ -77,57 +78,38 @@ export class TargetGradeHistoryComponent implements OnInit, OnChanges {
     this.loading = true;
     this.error = null;
 
-    const url = `${this.constants.API_URL}/projects/${this.projectId}`;
+    const url = `${this.constants.API_URL}/projects/${this.projectId}/target_grade_histories`
+      + `?page=${this.currentPage}&limit=${this.itemsPerPage}`;
 
-    this.http
-      .get<any>(url)
-      .pipe(
-        catchError((error) => {
-          console.error('Error fetching target grade history:', error);
-          this.error = 'Failed to load target grade history';
-          return of({ target_grade_histories: [] });
-        })
-      )
-      .subscribe({
-        next: (response) => {
-          const rawHistories = response.target_grade_histories || [];
-          this.targetGradeHistory = rawHistories
-            .filter(
-              (history: TargetGradeHistory) =>
-                history.previous_grade !== undefined && history.new_grade !== undefined
-            )
-            .map((history: TargetGradeHistory) => ({
-              ...history,
-              previous_grade: this.gradeService.grades[history.previous_grade] || 'N/A',
-              new_grade: this.gradeService.grades[history.new_grade] || 'N/A',
-            }))
-            .sort((a, b) => new Date(b.changed_at).getTime() - new Date(a.changed_at).getTime()); // newest first
+    this.http.get<any>(url).pipe(
+      catchError((err) => {
+        console.error('Error fetching target grade history:', err);
+        this.error = 'Failed to load target grade history';
+        return of({ target_grade_histories: [], total_histories: 0 });
+      })
+    ).subscribe(response => {
+      const histories = response.target_grade_histories || [];
+      const totalCount = response.total_histories || 0;
 
-          this.updatePagination();
-          this.loading = false;
-        },
-        error: () => {
-          this.error = 'Failed to load target grade history';
-          this.loading = false;
-        },
-      });
+      this.targetGradeHistory = histories.map((h: any) => ({
+        ...h,
+        previous_grade: this.gradeService.grades[h.previous_grade] || h.previous_grade,
+        new_grade: this.gradeService.grades[h.new_grade] || h.new_grade
+      }));
+
+     
+      this.paginatedGradeHistory = this.targetGradeHistory;
+      this.totalPages = Math.ceil(totalCount / this.itemsPerPage);
+
+      this.loading = false;
+    });
   }
 
-  private updatePagination(): void {
-    this.totalPages = Math.ceil(this.targetGradeHistory.length / this.itemsPerPage);
-    this.updatePaginatedGradeHistory();
-  }
-
-  private updatePaginatedGradeHistory(): void {
-    const startIndex = (this.currentPage - 1) * this.itemsPerPage;
-    const endIndex = startIndex + this.itemsPerPage;
-    this.paginatedGradeHistory = this.targetGradeHistory.slice(startIndex, endIndex);
-  }
-
+  
   public goToPage(page: number): void {
     if (page >= 1 && page <= this.totalPages) {
       this.currentPage = page;
-      this.updatePaginatedGradeHistory();
+      this.loadTargetGradeHistory();
     }
   }
 }
